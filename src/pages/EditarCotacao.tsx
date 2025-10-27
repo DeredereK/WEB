@@ -1,22 +1,13 @@
-import { BrowserRouter, Routes, Route, Link, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { api } from "./services/api";
-import NovaCotacao from "./pages/NovaCotacao";
-
-interface Cotacao {
-  id: string;
-  cliente: string;
-  status: "Rascunho" | "Enviado" | "Aprovado" | "Rejeitado";
-  total: number;
-  createdAt: string;
-  itens?: any[];
-}
+import { api } from "../services/api";
+import NovaCotacao from "../pages/NovaCotacao";
+import EditarCotacao from "../pages/EditarCotacao";
 
 function ListaCotacoes() {
-  const [cotacoes, setCotacoes] = useState<Cotacao[]>([]);
+  const [cotacoes, setCotacoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [mensagem, setMensagem] = useState("");
-  const navigate = useNavigate();
 
   useEffect(() => {
     carregarCotacoes();
@@ -28,14 +19,13 @@ function ListaCotacoes() {
       setCotacoes(response.data);
     } catch (error) {
       console.error("Erro ao buscar cotações:", error);
-      setMensagem("Erro ao carregar cotações");
     } finally {
       setLoading(false);
     }
   }
 
   async function deletarCotacao(id: string) {
-    if (!confirm("Deseja realmente excluir esta cotação? Todos os itens serão removidos.")) return;
+    if (!confirm("Deseja realmente excluir esta cotação?")) return;
 
     try {
       const response = await api.delete(`/cotacoes/${id}`);
@@ -61,24 +51,28 @@ function ListaCotacoes() {
       {cotacoes.length === 0 ? (
         <p>Nenhuma cotação encontrada.</p>
       ) : (
-        <div style={{ display: "grid", gap: "1rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
           {cotacoes.map((c) => (
             <div
               key={c.id}
               style={{
                 border: "1px solid #ccc",
+                padding: 12,
                 borderRadius: 8,
-                padding: 16,
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                width: 250,
+                position: "relative",
               }}
             >
               <h3>{c.cliente}</h3>
-              <p>Status: <strong>{c.status}</strong></p>
+              <p>Status: {c.status}</p>
               <p>Total: R$ {c.total.toFixed(2)}</p>
+              <p>Criada em: {new Date(c.createdAt).toLocaleDateString()}</p>
               <p>Itens: {c.itens?.length ?? 0}</p>
-              <p>Criado em: {new Date(c.createdAt).toLocaleString()}</p>
-              <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
-                <button onClick={() => navigate(`/editar-cotacao/${c.id}`)}>Editar</button>
+
+              <div style={{ marginTop: 8 }}>
+                <Link to={`/editar-cotacao/${c.id}`}>
+                  <button style={{ marginRight: 8 }}>Editar</button>
+                </Link>
                 <button onClick={() => deletarCotacao(c.id)}>Excluir</button>
               </div>
             </div>
@@ -95,7 +89,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<ListaCotacoes />} />
         <Route path="/nova-cotacao" element={<NovaCotacao />} />
-        {/* Futuramente adicionar rota /editar-cotacao/:id */}
+        <Route path="/editar-cotacao/:id" element={<EditarCotacao />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,36 +1,47 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { listarCotacoes } from "../controllers/cotacoes/cotacoes-get";
-import { deletarCotacao } from "../controllers/cotacoes/cotacoes-delete";
+import { Link, useNavigate } from "react-router-dom";
+import { api } from "../services/api";
+
+interface Cotacao {
+  id: string;
+  cliente: string;
+  status: "Rascunho" | "Enviado" | "Aprovado" | "Rejeitado";
+  total: number;
+  createdAt: string;
+  itens?: any[];
+}
 
 export default function ListaCotacoes() {
-  const [cotacoes, setCotacoes] = useState<any[]>([]);
+  const [cotacoes, setCotacoes] = useState<Cotacao[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    carregarCotacoes();
+    async function carregar() {
+      try {
+        const response = await api.get("/cotacoes");
+        setCotacoes(response.data);
+      } catch (error) {
+        console.error("Erro ao buscar cotações:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    carregar();
   }, []);
 
-  async function carregarCotacoes() {
-    setLoading(true);
-    try {
-      const dados = await listarCotacoes();
-      setCotacoes(dados);
-    } catch (error) {
-      console.error("Erro ao carregar cotações", error);
-    } finally {
-      setLoading(false);
+  async function handleDelete(id: string) {
+    if (!confirm("Deseja realmente excluir esta cotação? Todos os itens serão removidos.")) {
+      return;
     }
-  }
-
-  async function handleDeletar(id: string) {
-    if (window.confirm("Deseja realmente excluir esta cotação?")) {
-      try {
-        await deletarCotacao(id);
-        carregarCotacoes();
-      } catch (error) {
-        console.error("Erro ao deletar cotação", error);
-      }
+    try {
+      await api.delete(`/cotacoes/${id}`);
+      setCotacoes(cotacoes.filter(c => c.id !== id));
+      alert("Cotação removida com sucesso!");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao remover cotação");
     }
   }
 
@@ -46,20 +57,29 @@ export default function ListaCotacoes() {
       {cotacoes.length === 0 ? (
         <p>Nenhuma cotação encontrada.</p>
       ) : (
-        <ul>
+        <div style={{ display: "grid", gap: "1rem" }}>
           {cotacoes.map((c) => (
-            <li key={c.id} style={{ marginBottom: "0.5rem" }}>
-              <strong>{c.cliente}</strong> — Status: {c.status} — Total: R${" "}
-              {c.total.toFixed(2)}
-              <button
-                style={{ marginLeft: 10 }}
-                onClick={() => handleDeletar(c.id)}
-              >
-                Excluir
-              </button>
-            </li>
+            <div
+              key={c.id}
+              style={{
+                border: "1px solid #ccc",
+                borderRadius: 8,
+                padding: 16,
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+              }}
+            >
+              <h3>{c.cliente}</h3>
+              <p>Status: <strong>{c.status}</strong></p>
+              <p>Total: R$ {c.total.toFixed(2)}</p>
+              <p>Itens: {c.itens?.length ?? 0}</p>
+              <p>Criado em: {new Date(c.createdAt).toLocaleString()}</p>
+              <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+                <button onClick={() => navigate(`/editar-cotacao/${c.id}`)}>Editar</button>
+                <button onClick={() => handleDelete(c.id)}>Excluir</button>
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
