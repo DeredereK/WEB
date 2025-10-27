@@ -1,19 +1,20 @@
-import { carregarCotacoes, criarErroNaoEncontrado, criarErroInterno } from "../../utils/cotacoesUtils.js";
+import path from "path";
+import fs from "fs/promises";
+
+const filePath = path.resolve("./src/data/itens.json");
+
+async function carregarItens() {
+  try{
+    const data = await fs.readFile(filePath, "utf-8");
+    return JSON.parse(data) || [];
+  } catch {
+    return[]
+  }
+}
 
 export async function listarItens(request: any, reply: any) {
-  try {
-    const { idcotacao } = request.params;
-    const cotacoes = await carregarCotacoes();
-    const cotacao = cotacoes.find((c: any) => String(c.id) === idcotacao);
-
-    if (!cotacao) {
-      const erro = criarErroNaoEncontrado("Cotação não encontrada");
-      return reply.status(erro.statusCode).send(erro.body);
-    }
-
-    return reply.status(200).send(cotacao.itens || []);
-  } catch (err: any) {
-    const erro = criarErroInterno("Erro ao listar itens", err.message);
-    return reply.status(erro.statusCode).send(erro.body);
-  }
+  const { id } = request.params; // Usando 'id' da cotação
+  const itens = await carregarItens();
+  const itensCotacao = itens.filter((i: any) => i.cotacaoId === id); // Filtrando pelo 'cotacaoId'
+  reply.code(200).send(itensCotacao);
 }

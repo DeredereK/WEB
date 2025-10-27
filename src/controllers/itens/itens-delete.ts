@@ -1,33 +1,30 @@
-import { carregarCotacoes, salvarCotacoes, criarErroNaoEncontrado, criarErroInterno } from "../../utils/cotacoesUtils.js";
+import path from "path";
+import fs from "fs/promises"; 
+
+const filePath = path.resolve("./src/data/itens.json");
+
+async function carregarItens() {
+  const data = await fs.readFile(filePath, "utf-8");
+  return JSON.parse(data) || [];
+}
+
+async function salvarItens(itens: any[]) {
+  await fs.writeFile(filePath, JSON.stringify(itens, null, 2));
+}
 
 export async function deletarItem(request: any, reply: any) {
-  try {
-    const { idcotacao, iditem } = request.params;
-    const cotacoes = await carregarCotacoes();
-    const cotacao = cotacoes.find((c: any) => String(c.id) === idcotacao);
+  const { id, itemId } = request.params; // Usando 'id' e 'itemId'
+  const itens = await carregarItens();
 
-    if (!cotacao) {
-      const erro = criarErroNaoEncontrado("Cotação não encontrada");
-      return reply.status(erro.statusCode).send(erro.body);
-    }
-
-    const index = cotacao.itens?.findIndex((i: any) => String(i.id) === iditem);
-    if (index === -1 || index === undefined) {
-      const erro = criarErroNaoEncontrado("Item não encontrado");
-      return reply.status(erro.statusCode).send(erro.body);
-    }
-
-    const itemRemovido = cotacao.itens.splice(index, 1)[0];
-    cotacao.total = cotacao.itens.reduce((acc: number, i: any) => acc + i.subtotal, 0);
-
-    await salvarCotacoes(cotacoes);
-
-    return reply.status(200).send({
-      message: "Item removido com sucesso",
-      itemRemovido,
-    });
-  } catch (err: any) {
-    const erro = criarErroInterno("Erro ao deletar item", err.message);
-    return reply.status(erro.statusCode).send(erro.body);
+  // O item no JSON tem 'iditem' e não 'id'. Usaremos 'id' para o ID do item.
+  const index = itens.findIndex((i: any) => i.id === itemId && i.cotacaoId === id); 
+  if (index === -1) {
+    reply.code(404).send({ message: "Item não encontrado" });
+    return;
   }
+
+  itens.splice(index, 1);
+  await salvarItens(itens);
+
+  reply.code(200).send({ message: "Item removido com sucesso" });
 }

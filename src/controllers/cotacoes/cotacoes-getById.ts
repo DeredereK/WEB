@@ -1,4 +1,4 @@
-import { api } from "../../services/api";
+import { api } from "../../services/api.js";
 
 export async function buscarCotacaoPorId(id: string) {
   const response = await api.get(`/cotacoes/${id}`);
