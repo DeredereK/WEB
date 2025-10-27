@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link, useNavigate } from "react-router-do
 import { useEffect, useState } from "react";
 import { api } from "./services/api";
 import NovaCotacao from "./pages/NovaCotacao";
+import ItensCotacao from "./pages/ItensCotacao"; // ✅ nova importação
 
 interface Cotacao {
   id: string;
@@ -80,6 +81,7 @@ function ListaCotacoes() {
               <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
                 <button onClick={() => navigate(`/editar-cotacao/${c.id}`)}>Editar</button>
                 <button onClick={() => deletarCotacao(c.id)}>Excluir</button>
+                <button onClick={() => navigate(`/cotacoes/${c.id}/itens`)}>Ver Itens</button> {/* ✅ novo botão */}
               </div>
             </div>
           ))}
@@ -95,6 +97,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<ListaCotacoes />} />
         <Route path="/nova-cotacao" element={<NovaCotacao />} />
+        <Route path="/cotacoes/:idcotacao/itens" element={<ItensCotacao />} /> {/* ✅ nova rota */}
         {/* Futuramente adicionar rota /editar-cotacao/:id */}
       </Routes>
     </BrowserRouter>
