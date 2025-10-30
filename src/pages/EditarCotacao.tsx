@@ -4,10 +4,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "../services/api.js";
-import { formatCurrency } from "../utils/formatCurrency.js"; // Importar o formatCurrency
-import "../App.css"; // Importar o CSS
-
-// --- Tipos e Schemas ---
+import { formatCurrency } from "../utils/formatCurrency.js";
+import "../App.css";
 
 interface Item {
   id: string;
@@ -43,21 +41,18 @@ const itemSchema = z.object({
 type CotacaoFormData = z.infer<typeof cotacaoSchema>;
 type ItemFormData = z.infer<typeof itemSchema>;
 
-// --- Componente Principal ---
-
 export default function EditarCotacao() {
   const { id: cotacaoId } = useParams<{ id: string }>();
   const id = cotacaoId;
   const navigate = useNavigate();
-  const [cotacao, setCotacao] = useState<Cotacao | null>(null); // Estado para a cotação completa
-  const [itens, setItens] = useState<Item[]>([]); // Estado para os itens
+  const [cotacao, setCotacao] = useState<Cotacao | null>(null);
+  const [itens, setItens] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingItems, setLoadingItems] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mensagem, setMensagem] = useState("");
   const [mensagemItem, setMensagemItem] = useState("");
 
-  // Formulário de Edição de Cotação
   const {
     register: registerCotacao,
     handleSubmit: handleSubmitCotacao,
@@ -67,7 +62,6 @@ export default function EditarCotacao() {
     resolver: zodResolver(cotacaoSchema),
   });
 
-  // Formulário de Adição de Item
   const {
     register: registerItem,
     handleSubmit: handleSubmitItem,
@@ -77,7 +71,6 @@ export default function EditarCotacao() {
     resolver: zodResolver(itemSchema),
   });
 
-  // 1. Função de Recálculo do Total da Cotação
   const recalculateTotal = useCallback(async () => {
     if (!id) return;
     try {
@@ -88,18 +81,15 @@ export default function EditarCotacao() {
     }
   }, [id]);
 
-  // 2. Carregar Cotação e Itens
   const fetchCotacaoAndItens = useCallback(async () => {
     if (!id) return;
     setLoadingItems(true);
     setError(null);
     try {
-      // Carrega a cotação
       const cotacaoResponse = await api.get(`/cotacoes/${id}`);
       setCotacao(cotacaoResponse.data);
-      resetCotacao(cotacaoResponse.data); // Preenche o formulário
+      resetCotacao(cotacaoResponse.data);
 
-      // Carrega os itens
       const itensResponse = await api.get(`/cotacoes/${id}/items`);
       setItens(itensResponse.data);
     } catch (err) {
@@ -115,12 +105,10 @@ export default function EditarCotacao() {
     fetchCotacaoAndItens();
   }, [fetchCotacaoAndItens]);
 
-  // 3. Lógica de submissão para PUT (Edição da Cotação)
   const onSaveCotacao = async (data: CotacaoFormData) => {
     try {
       await api.put(`/cotacoes/${id}`, data);
       setMensagem("Cotação atualizada com sucesso!");
-      // Atualiza o estado local da cotação e recalcula o total (caso o desconto tenha mudado)
       setCotacao((prev) => (prev ? { ...prev, ...data } : null));
       await recalculateTotal();
     } catch (err) {
@@ -129,7 +117,6 @@ export default function EditarCotacao() {
     }
   };
 
-  // 4. Lógica de Exclusão da Cotação
   async function handleDeleteCotacao() {
     if (!confirm("Deseja realmente excluir esta cotação? Isso removerá TODOS os itens vinculados.")) {
       return;
@@ -137,37 +124,33 @@ export default function EditarCotacao() {
     try {
       await api.delete(`/cotacoes/${id}`);
       alert("Cotação removida com sucesso!");
-      navigate("/"); // Volta para a lista
+      navigate("/");
     } catch (error) {
       console.error(error);
       alert("Erro ao remover cotação");
     }
   }
 
-  // 5. Adicionar Novo Item
   const onAddItem = async (data: ItemFormData) => {
     if (!id) return;
     setMensagemItem("");
     try {
       const response = await api.post(`/cotacoes/${id}/items`, data);
-      
-      // Adiciona o novo item à lista localmente
+
       setItens((prevItens) => [...prevItens, response.data]);
-      
-      // Recalcula o total da cotação
+
       await recalculateTotal();
       
       setMensagemItem("Item adicionado com sucesso!");
-      resetItem({ produto: "", quantidade: 1, precoUnit: 0 }); // Limpa o formulário
+      resetItem({ produto: "", quantidade: 1, precoUnit: 0 });
     } catch (err: any) {
       console.error("Erro ao adicionar item:", err);
       setMensagemItem("Erro ao adicionar item: " + (err.response?.data?.message || err.message));
     }
   };
 
-  // 6. Deletar Item - COM LOG DE DEBUG
   const onDeleteItem = async (itemId: string) => {
-    // Adicionando log para depuração
+
     console.log("ID da Cotação (id):", id);
     console.log("ID do Item (itemId):", itemId);
 
